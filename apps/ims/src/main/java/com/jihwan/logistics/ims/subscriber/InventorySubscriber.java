@@ -1,0 +1,76 @@
+package com.jihwan.logistics.ims.subscriber;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jihwan.logistics.ims.service.InventoryManager;
+import com.solacesystems.jcsmp.*;
+
+import java.util.Map;
+
+public class InventorySubscriber {
+
+    private static final String SOLACE_HOST = System.getenv("SOLACE_HOST");
+    private static final String SOLACE_VPN = System.getenv("SOLACE_VPN");
+    private static final String SOLACE_USER = System.getenv("SOLACE_USER");
+    private static final String SOLACE_PASS = System.getenv("SOLACE_PASS");
+
+    private final InventoryManager inventoryManager;
+
+    public InventorySubscriber(InventoryManager inventoryManager) {
+        this.inventoryManager = inventoryManager;
+    }
+
+    public void start() throws JCSMPException {
+        JCSMPProperties properties = new JCSMPProperties();
+        properties.setProperty(JCSMPProperties.HOST, SOLACE_HOST);
+        properties.setProperty(JCSMPProperties.VPN_NAME, SOLACE_VPN);
+        properties.setProperty(JCSMPProperties.USERNAME, SOLACE_USER);
+        properties.setProperty(JCSMPProperties.PASSWORD, SOLACE_PASS);
+
+        JCSMPSession session = JCSMPFactory.onlyInstance().createSession(properties);
+        session.connect();
+
+        final Topic topic = JCSMPFactory.onlyInstance()
+                .createTopic("TOPIC/JIHWAN_LOGIS/ORDER/CREATED/>");
+
+        XMLMessageConsumer consumer = session.getMessageConsumer(new XMLMessageListener() {
+            private final ObjectMapper mapper = new ObjectMapper();
+
+            @Override
+            public void onReceive(BytesXMLMessage message) {
+                if (message instanceof TextMessage) {
+                    String text = ((TextMessage) message).getText();
+                    try {
+                        Map<String, Object> payload = mapper.readValue(text, Map.class);
+                        String orderId = (String) payload.get("order_id");
+                        String itemId = (String) payload.get("item_id");
+                        String destination = (String) payload.get("destination");
+
+                        boolean inStock = inventoryManager.hasStock(destination, itemId);
+
+                        System.out.printf("Order %s - Item %s @%s -> Stock %s%n",
+                                orderId, itemId, destination, inStock ? "PRESENT" : "OUT_OF_STOCK");
+                    } catch (Exception e) {
+                        System.err.println("Failed to parse JSON: " + e.getMessage());
+                    }
+                }
+            }
+
+            @Override
+            public void onException(JCSMPException e) {
+                System.err.println("Solace receive error: " + e.getMessage());
+            }
+        });
+
+        session.addSubscription(topic);
+        consumer.start();
+        System.out.println("Solace Subscriber started for ORDER_CREATED");
+
+        while(true) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException _ignored) {
+
+            }
+        }
+    }
+}
