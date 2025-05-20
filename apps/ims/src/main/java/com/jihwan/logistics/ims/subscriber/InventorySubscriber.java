@@ -1,6 +1,7 @@
 package com.jihwan.logistics.ims.subscriber;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jihwan.logistics.ims.config.SolaceSessionFactory;
 import com.jihwan.logistics.ims.service.InventoryManager;
 import com.solacesystems.jcsmp.*;
 
@@ -20,13 +21,7 @@ public class InventorySubscriber {
     }
 
     public void start() throws JCSMPException {
-        JCSMPProperties properties = new JCSMPProperties();
-        properties.setProperty(JCSMPProperties.HOST, SOLACE_HOST);
-        properties.setProperty(JCSMPProperties.VPN_NAME, SOLACE_VPN);
-        properties.setProperty(JCSMPProperties.USERNAME, SOLACE_USER);
-        properties.setProperty(JCSMPProperties.PASSWORD, SOLACE_PASS);
-
-        JCSMPSession session = JCSMPFactory.onlyInstance().createSession(properties);
+        JCSMPSession session = SolaceSessionFactory.createSession();
         session.connect();
 
         final Topic topic = JCSMPFactory.onlyInstance()
