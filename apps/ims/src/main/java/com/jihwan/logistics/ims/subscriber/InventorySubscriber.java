@@ -9,11 +9,6 @@ import java.util.Map;
 
 public class InventorySubscriber {
 
-    private static final String SOLACE_HOST = System.getenv("SOLACE_HOST");
-    private static final String SOLACE_VPN = System.getenv("SOLACE_VPN");
-    private static final String SOLACE_USER = System.getenv("SOLACE_USER");
-    private static final String SOLACE_PASS = System.getenv("SOLACE_PASS");
-
     private final InventoryManager inventoryManager;
 
     public InventorySubscriber(InventoryManager inventoryManager) {
