@@ -45,8 +45,21 @@ public class OrderEventPublisher {
     }
 
     public void publishOrderCreated(Map<String, Object> payload, String region, String orderId) {
+        publishToTopic("CREATED", payload, region, orderId);
+    }
+
+    public void publishOrderConfirmed(Map<String, Object> payload, String region, String orderId) {
+        publishToTopic("CONFIRMED", payload, region, orderId);
+    }
+
+    public void publishOrderFailed(Map<String, Object> payload, String region, String orderId) {
+        publishToTopic("FAILED", payload, region, orderId);
+    }
+
+    private void publishToTopic(String eventType, Map<String, Object> payload, String region, String orderId) {
         try {
-            String topicStr = String.format("TOPIC/JIHWAN_LOGIS/ORDER/CREATED/%s/%s", region, orderId);
+            String topicStr = String.format("TOPIC/JIHWAN_LOGIS/ORDER/%s/%s/%s",
+                    eventType.toUpperCase(), region.toUpperCase(), orderId);
             Topic topic = JCSMPFactory.onlyInstance().createTopic(topicStr);
 
             TextMessage msg = JCSMPFactory.onlyInstance().createMessage(TextMessage.class);
@@ -56,7 +69,12 @@ public class OrderEventPublisher {
             producer.send(msg, topic);
             log.info("Published to Topic [{}]: {}", topicStr, msg.getText());
         } catch (JCSMPException e) {
-            log.error("Failed to publish ORDER_CREATED", e);
+            log.error("Failed to publish ORDER_{}: {}", eventType, e.getMessage());
         }
     }
+
+    public void publishOrderDelivered(Map<String, Object> payload, String region, String orderId) {
+        publishToTopic("DELIVERED", payload, region, orderId);
+    }
+
 }

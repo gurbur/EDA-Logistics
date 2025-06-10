@@ -1,6 +1,7 @@
 package com.jihwan.logistics.oms.services;
 
 import com.jihwan.logistics.oms.domain.Order;
+import com.jihwan.logistics.oms.domain.OrderStatus;
 import com.jihwan.logistics.oms.event.OrderEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,40 @@ public class OrderService {
         Order order = new Order(userId, itemId, destination);
         orderStore.put(order.getOrderId(), order);
 
+        Map<String, Object> payload = buildPayload(order);
+        publisher.publishOrderCreated(payload, destination, order.getOrderId());
+
+        log.info("Order created: {}", order.getOrderId());
+        return order;
+    }
+
+    public void confirmOrder(String orderId) {
+        Order order = orderStore.get(orderId);
+        if (order == null) {
+            log.warn("No such order to confirm: {}", orderId);
+            return;
+        }
+
+        order.setStatus(OrderStatus.CONFIRMED);
+        Map<String, Object> payload = buildPayload(order);
+        publisher.publishOrderConfirmed(payload, order.getDestination(), order.getOrderId());
+        log.info("Order confirmed: {}", orderId);
+    }
+
+    public void failOrder(String orderId) {
+        Order order = orderStore.get(orderId);
+        if (order == null) {
+            log.warn("No such order to fail: {}", orderId);
+            return;
+        }
+
+        order.setStatus(OrderStatus.FAILED);
+        Map<String, Object> payload = buildPayload(order);
+        publisher.publishOrderFailed(payload, order.getDestination(), order.getOrderId());
+        log.info("Order failed: {}", orderId);
+    }
+
+    private Map<String, Object> buildPayload(Order order) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("order_id", order.getOrderId());
         payload.put("user_id", order.getUserId());
@@ -29,10 +64,20 @@ public class OrderService {
         payload.put("destination", order.getDestination());
         payload.put("status", order.getStatus().name());
         payload.put("timestamp", Instant.now().toString());
-
-        publisher.publishOrderCreated(payload, destination, order.getOrderId());
-
-        log.info("Order created: {}", order.getOrderId());
-        return order;
+        return payload;
     }
+
+    public void deliverOrder(String orderId) {
+        Order order = orderStore.get(orderId);
+        if (order == null) {
+            log.warn("No such order to deliver: {}", orderId);
+            return;
+        }
+
+        order.setStatus(OrderStatus.DELIVERED);
+        Map<String, Object> payload = buildPayload(order);
+        publisher.publishOrderDelivered(payload, order.getDestination(), order.getOrderId());
+        log.info("Order delivered: {}", orderId);
+    }
+
 }
