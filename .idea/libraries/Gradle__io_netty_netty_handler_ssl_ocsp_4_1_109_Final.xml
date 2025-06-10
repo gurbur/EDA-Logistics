@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="Gradle: io.netty:netty-handler-ssl-ocsp:4.1.109.Final" type="java-imported" external-system-id="GRADLE">
+    <properties groupId="io.netty" artifactId="netty-handler-ssl-ocsp" version="4.1.109.Final" baseVersion="4.1.109.Final" />
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/io.netty/netty-handler-ssl-ocsp/4.1.109.Final/c630358d6aa967795cf2d07f95e454dbd54056e4/netty-handler-ssl-ocsp-4.1.109.Final.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

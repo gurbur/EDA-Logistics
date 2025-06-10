@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="Gradle: com.solacesystems:sol-jcsmp:10.24.1" type="java-imported" external-system-id="GRADLE">
+    <properties groupId="com.solacesystems" artifactId="sol-jcsmp" version="10.24.1" baseVersion="10.24.1" />
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.solacesystems/sol-jcsmp/10.24.1/2e19674f7288c8119255df2cd4af481447c4f86f/sol-jcsmp-10.24.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
