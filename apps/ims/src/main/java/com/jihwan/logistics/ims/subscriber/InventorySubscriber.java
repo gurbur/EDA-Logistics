@@ -2,17 +2,21 @@ package com.jihwan.logistics.ims.subscriber;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jihwan.logistics.ims.config.SolaceSessionFactory;
+import com.jihwan.logistics.ims.publisher.InventoryPublisher;
 import com.jihwan.logistics.ims.service.InventoryManager;
 import com.solacesystems.jcsmp.*;
 
+import java.util.List;
 import java.util.Map;
 
 public class InventorySubscriber {
 
     private final InventoryManager inventoryManager;
+    private final InventoryPublisher inventoryPublisher;
 
-    public InventorySubscriber(InventoryManager inventoryManager) {
+    public InventorySubscriber(InventoryManager inventoryManager, InventoryPublisher inventoryPublisher) {
         this.inventoryManager = inventoryManager;
+        this.inventoryPublisher = inventoryPublisher;
     }
 
     public void start() throws JCSMPException {
@@ -37,6 +41,12 @@ public class InventorySubscriber {
 
                         boolean inStock = inventoryManager.hasStock(destination, itemId);
 
+                        if (inStock) {
+                            int remainingQty = inventoryManager.getStock(destination, itemId);
+                            inventoryPublisher.publishStockEvent("CONFIRMED", destination, orderId, itemId, remainingQty);
+                        } else {
+                            inventoryPublisher.publishStockInsufficient(orderId, itemId, List.of(destination));
+                        }
                         System.out.printf("Order %s - Item %s @%s -> Stock %s%n",
                                 orderId, itemId, destination, inStock ? "PRESENT" : "OUT_OF_STOCK");
                     } catch (Exception e) {

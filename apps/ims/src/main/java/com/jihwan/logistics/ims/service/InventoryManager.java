@@ -29,6 +29,12 @@ public class InventoryManager {
         return warehouse.getOrDefault(itemId, 0) > 0;
     }
 
+    public int getStock(String warehouseId, String itemId) {
+        Map<String, Integer> warehouse = inventoryMap.get(warehouseId);
+        if (warehouse == null) return 0;
+        return warehouse.getOrDefault(itemId, 0);
+    }
+
     public synchronized boolean decrementStock(String warehouseId, String itemId) {
         Map<String, Integer> warehouse = inventoryMap.get(warehouseId);
         if (warehouse == null) return false;
