@@ -23,8 +23,11 @@ public class InventorySubscriber {
         JCSMPSession session = SolaceSessionFactory.createSession();
         session.connect();
 
-        final Topic topic = JCSMPFactory.onlyInstance()
+        final Topic orderCreatedTopic = JCSMPFactory.onlyInstance()
                 .createTopic("TOPIC/JIHWAN_LOGIS/ORDER/CREATED/>");
+
+        final Topic itemPackedTopic = JCSMPFactory.onlyInstance()
+                .createTopic("TOPIC/JIHWAN_LOGIS/PACKING/ITEM_PACKED/>");
 
         XMLMessageConsumer consumer = session.getMessageConsumer(new XMLMessageListener() {
             private final ObjectMapper mapper = new ObjectMapper();
@@ -35,20 +38,43 @@ public class InventorySubscriber {
                     String text = ((TextMessage) message).getText();
                     try {
                         Map<String, Object> payload = mapper.readValue(text, Map.class);
-                        String orderId = (String) payload.get("order_id");
-                        String itemId = (String) payload.get("item_id");
-                        String destination = (String) payload.get("destination");
 
-                        boolean inStock = inventoryManager.hasStock(destination, itemId);
+                        if (message.getDestination() instanceof Topic topic) {
+                            String topicStr = topic.getName();
 
-                        if (inStock) {
-                            int remainingQty = inventoryManager.getStock(destination, itemId);
-                            inventoryPublisher.publishStockEvent("CONFIRMED", destination, orderId, itemId, remainingQty);
-                        } else {
-                            inventoryPublisher.publishStockInsufficient(orderId, itemId, List.of(destination));
+                            if (topicStr.contains("ORDER/CREATED")) {
+                                String orderId = (String) payload.get("order_id");
+                                String itemId = (String) payload.get("item_id");
+                                String destination = (String) payload.get("destination");
+
+                                boolean inStock = inventoryManager.hasStock(destination, itemId);
+
+                                if (inStock) {
+                                    int remainingQty = inventoryManager.getStock(destination, itemId);
+                                    inventoryPublisher.publishStockEvent("CONFIRMED", destination, orderId, itemId, remainingQty);
+                                } else {
+                                    inventoryPublisher.publishStockInsufficient(orderId, itemId, List.of(destination));
+                                }
+                                System.out.printf("Order %s - Item %s @%s -> Stock %s%n",
+                                        orderId, itemId, destination, inStock ? "PRESENT" : "OUT_OF_STOCK");
+
+                            } else if (topicStr.contains("PACKING/ITEM_PACKED")) {
+                                String orderId = (String) payload.get("order_id");
+                                String itemId = (String) payload.get("item_id");
+                                String warehouseId = (String) payload.get("warehouse_id");
+
+                                boolean result = inventoryManager.decrementStock(warehouseId, itemId);
+                                if (result) {
+                                    int remain = inventoryManager.getStock(warehouseId, itemId);
+                                    System.out.printf("[PACKED] 재고 차감됨: %s - %s @%s (남은 수량: %d)%n",
+                                            orderId, itemId, warehouseId, remain);
+                                } else {
+                                    System.err.printf("[PACKED] 차감 실패: 재고 없음 (%s - %s @%s)%n",
+                                            orderId, itemId, warehouseId);
+                                }
+                            }
                         }
-                        System.out.printf("Order %s - Item %s @%s -> Stock %s%n",
-                                orderId, itemId, destination, inStock ? "PRESENT" : "OUT_OF_STOCK");
+
                     } catch (Exception e) {
                         System.err.println("Failed to parse JSON: " + e.getMessage());
                     }
@@ -61,16 +87,18 @@ public class InventorySubscriber {
             }
         });
 
-        session.addSubscription(topic);
+        session.addSubscription(orderCreatedTopic);
+        session.addSubscription(itemPackedTopic);
         consumer.start();
-        System.out.println("Solace Subscriber started for ORDER_CREATED");
 
-        while(true) {
+        System.out.println("Solace Subscriber started for ORDER_CREATED and ITEM_PACKED");
+
+        while (true) {
             try {
                 Thread.sleep(1000);
-            } catch (InterruptedException _ignored) {
-
+            } catch (InterruptedException ignored) {
             }
         }
     }
+
 }
