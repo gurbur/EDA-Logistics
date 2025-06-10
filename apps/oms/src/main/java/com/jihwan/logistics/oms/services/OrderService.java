@@ -93,4 +93,29 @@ public class OrderService {
         log.info("Order dispatched: {}", orderId);
     }
 
+    public void modifyOrder(String orderId, Map<String, Object> updates) {
+        Order order = orderStore.get(orderId);
+        if (order == null) {
+            log.warn("Cannot modify non-existing order: {}", orderId);
+            return;
+        }
+
+        if (updates.containsKey("status")) {
+            try {
+                OrderStatus newStatus = OrderStatus.valueOf((String) updates.get("status"));
+                order.setStatus(newStatus);
+                log.info("Order {} status updated to {}", orderId, newStatus);
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid status provided for order {}: {}", orderId, updates.get("status"));
+            }
+        }
+
+        if (updates.containsKey("destination")) {
+            String newDest = (String) updates.get("destination");
+            log.info("Order {} destination changed: {} -> {}", orderId, order.getDestination(), newDest);
+            order.updateDestination(newDest);  // 이 메서드는 Order.java에 새로 정의해야 함
+        }
+
+    }
+
 }

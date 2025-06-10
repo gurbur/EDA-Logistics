@@ -56,7 +56,11 @@ public class OrderEventSubscriber {
                                 } else if (topicName.contains("ORDER_DISPATCHED")) {
                                     orderService.dispatchOrder(orderId);
                                     log.info("Order dispatched by DISPATCH event: {}", orderId);
+                                } else if (topicName.contains("ORDER_MODIFY")) {
+                                    orderService.modifyOrder(orderId, payload);
+                                    log.info("Order {} modified via CS request", orderId);
                                 }
+
 
                             }
                         } catch (Exception e) {
@@ -77,6 +81,9 @@ public class OrderEventSubscriber {
 
             session.addSubscription(JCSMPFactory.onlyInstance()
                     .createTopic("TOPIC/JIHWAN_LOGIS/DISPATCH/ORDER_DISPATCHED/>"));
+
+            session.addSubscription(JCSMPFactory.onlyInstance()
+                    .createTopic("TOPIC/JIHWAN_LOGIS/CS/ORDER_MODIFY/>"));
 
             consumer.start();
             log.info("Started subscription to STOCK topics");

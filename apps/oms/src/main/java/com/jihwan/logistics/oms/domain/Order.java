@@ -12,7 +12,7 @@ public class Order {
     private final String orderId;
     private final String userId;
     private final String itemId;
-    private final String destination;
+    private String destination;
     private final Instant createdAt;
     private OrderStatus status;
     private Instant updatedAt;
@@ -43,5 +43,9 @@ public class Order {
             case DISPATCHED -> next == OrderStatus.DELIVERED || next == OrderStatus.FAILED;
             case DELIVERED, FAILED -> false;
         };
+    }
+
+    public void updateDestination(String newDestination) {
+        this.destination = newDestination;
     }
 }
