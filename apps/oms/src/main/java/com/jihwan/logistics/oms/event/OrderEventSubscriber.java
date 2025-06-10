@@ -53,7 +53,11 @@ public class OrderEventSubscriber {
                                 } else if (topicName.contains("STOCK_INSUFFICIENT")) {
                                     orderService.failOrder(orderId);
                                     log.warn("Failed to confirm order due to insufficient stock: {}", orderId);
+                                } else if (topicName.contains("ORDER_DISPATCHED")) {
+                                    orderService.dispatchOrder(orderId);
+                                    log.info("Order dispatched by DISPATCH event: {}", orderId);
                                 }
+
                             }
                         } catch (Exception e) {
                             log.error("Failed to process stock event: {}", e.getMessage());
@@ -70,6 +74,9 @@ public class OrderEventSubscriber {
             // Topic 구독
             session.addSubscription(JCSMPFactory.onlyInstance()
                     .createTopic("TOPIC/JIHWAN_LOGIS/STOCK/>"));
+
+            session.addSubscription(JCSMPFactory.onlyInstance()
+                    .createTopic("TOPIC/JIHWAN_LOGIS/DISPATCH/ORDER_DISPATCHED/>"));
 
             consumer.start();
             log.info("Started subscription to STOCK topics");

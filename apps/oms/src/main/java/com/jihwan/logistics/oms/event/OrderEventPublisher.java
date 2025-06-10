@@ -77,4 +77,8 @@ public class OrderEventPublisher {
         publishToTopic("DELIVERED", payload, region, orderId);
     }
 
+    public void publishOrderDispatched(Map<String, Object> payload, String region, String orderId) {
+        publishToTopic("DISPATCHED", payload, region, orderId);
+    }
+
 }

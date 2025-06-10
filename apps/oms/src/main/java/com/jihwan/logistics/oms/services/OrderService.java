@@ -80,4 +80,17 @@ public class OrderService {
         log.info("Order delivered: {}", orderId);
     }
 
+    public void dispatchOrder(String orderId) {
+        Order order = orderStore.get(orderId);
+        if (order == null) {
+            log.warn("No such order to dispatch: {}", orderId);
+            return;
+        }
+
+        order.setStatus(OrderStatus.DISPATCHED);
+        Map<String, Object> payload = buildPayload(order);
+        publisher.publishOrderDispatched(payload, order.getDestination(), order.getOrderId());
+        log.info("Order dispatched: {}", orderId);
+    }
+
 }
