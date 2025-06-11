@@ -8,7 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -18,6 +20,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class OrderService {
     private final OrderEventPublisher publisher;
     private final ConcurrentHashMap<String, Order> orderStore = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, String>> failureReasons = new ConcurrentHashMap<>();
+
 
     public Order createOrder(String userId, String itemId, String destination) {
         Order order = new Order(userId, itemId, destination);
@@ -117,5 +121,16 @@ public class OrderService {
         }
 
     }
+
+    public void addFailureReason(String orderId, String service, String reason) {
+        failureReasons.computeIfAbsent(orderId, k -> new ConcurrentHashMap<>())
+                .put(service.toUpperCase(), reason);
+        log.warn("Order {} allocation failed ({}): {}", orderId, service, reason);
+    }
+
+    public Map<String, String> getFailureReasons(String orderId) {
+        return failureReasons.getOrDefault(orderId, Map.of());
+    }
+
 
 }

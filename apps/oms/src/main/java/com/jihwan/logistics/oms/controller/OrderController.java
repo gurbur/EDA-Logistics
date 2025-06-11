@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/order")
 @RequiredArgsConstructor
@@ -24,4 +26,10 @@ public class OrderController {
 
         return ResponseEntity.ok(order.getOrderId());
     }
+
+    @GetMapping("/{orderId}/failures")
+    public ResponseEntity<Map<String, String>> getFailureReasons(@PathVariable String orderId) {
+        return ResponseEntity.ok(orderService.getFailureReasons(orderId));
+    }
+
 }

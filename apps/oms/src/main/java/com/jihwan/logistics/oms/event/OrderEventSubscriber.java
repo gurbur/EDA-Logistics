@@ -59,7 +59,23 @@ public class OrderEventSubscriber {
                                 } else if (topicName.contains("ORDER_MODIFY")) {
                                     orderService.modifyOrder(orderId, payload);
                                     log.info("Order {} modified via CS request", orderId);
+                                } else if (topicName.contains("ALLOCATION_RESULT")) {
+                                    String result = (String) payload.get("result");
+                                    String reason = (String) payload.getOrDefault("reason", "알 수 없는 사유");
+
+                                    String service = extractServiceName(topicName); // NEW
+
+                                    if ("SUCCESS".equalsIgnoreCase(result)) {
+                                        orderService.confirmOrder(orderId);
+                                        log.info("[ALLOCATION SUCCESS] Order {}", orderId);
+                                    } else {
+                                        orderService.addFailureReason(orderId, service, reason); // UPDATED
+                                        orderService.failOrder(orderId);
+                                        log.warn("[ALLOCATION FAILURE] Order {}: {}", orderId, reason);
+                                    }
                                 }
+
+
 
 
                             }
@@ -85,10 +101,20 @@ public class OrderEventSubscriber {
             session.addSubscription(JCSMPFactory.onlyInstance()
                     .createTopic("TOPIC/JIHWAN_LOGIS/CS/ORDER_MODIFY/>"));
 
+            session.addSubscription(JCSMPFactory.onlyInstance()
+                    .createTopic("TOPIC/JIHWAN_LOGIS/>/ALLOCATION_RESULT/>"));
+
             consumer.start();
             log.info("Started subscription to STOCK topics");
         } catch (JCSMPException e) {
             log.error("Failed to initialize OrderEventSubscriber:", e);
         }
     }
+
+    private String extractServiceName(String topic) {
+        // e.g., TOPIC/JIHWAN_LOGIS/IMS/ALLOCATION_RESULT/... → "IMS"
+        String[] parts = topic.split("/");
+        return parts.length >= 4 ? parts[2] : "UNKNOWN";
+    }
+
 }
