@@ -58,6 +58,7 @@ public class InventorySubscriber {
                                     inventoryPublisher.publishStockEvent("CONFIRMED", assignedWarehouse, orderId, itemId, remainingQty);
                                 } else {
                                     inventoryPublisher.publishStockInsufficient(orderId, itemId, List.of(destination));
+                                    inventoryPublisher.publishAllocationFailure(orderId, "모든 창고에서 재고 부족");
                                 }
 
                                 System.out.printf("Order %s - Item %s → Assigned: %s%n",
