@@ -51,17 +51,17 @@ public class InventorySubscriber {
                                 String itemId = (String) payload.get("item_id");
                                 String destination = (String) payload.get("destination");
 
-                                boolean inStock = inventoryManager.hasStock(destination, itemId);
+                                String assignedWarehouse = inventoryManager.findNearestWarehouse(destination, itemId);
 
-                                if (inStock) {
-                                    int remainingQty = inventoryManager.getStock(destination, itemId);
-                                    inventoryPublisher.publishStockEvent("CONFIRMED", destination, orderId, itemId, remainingQty);
+                                if (assignedWarehouse != null) {
+                                    int remainingQty = inventoryManager.getStock(assignedWarehouse, itemId);
+                                    inventoryPublisher.publishStockEvent("CONFIRMED", assignedWarehouse, orderId, itemId, remainingQty);
                                 } else {
                                     inventoryPublisher.publishStockInsufficient(orderId, itemId, List.of(destination));
                                 }
-                                System.out.printf("Order %s - Item %s @%s -> Stock %s%n",
-                                        orderId, itemId, destination, inStock ? "PRESENT" : "OUT_OF_STOCK");
 
+                                System.out.printf("Order %s - Item %s → Assigned: %s%n",
+                                        orderId, itemId, assignedWarehouse != null ? assignedWarehouse : "NOT_FOUND");
                             } else if (topicStr.contains("PACKING/ITEM_PACKED")) {
                                 String orderId = (String) payload.get("order_id");
                                 String itemId = (String) payload.get("item_id");
@@ -78,15 +78,17 @@ public class InventorySubscriber {
                                 }
                             } else if (topicStr.contains("INVENTORY/INIT")) {
                                 String warehouseId = (String) payload.get("warehouse_id");
-                                String itemId = (String) payload.get("item_id");
-                                Integer quantity = (Integer) payload.get("quantity");
+                                Map<String, Integer> stockMap = (Map<String, Integer>) payload.get("stock");
 
-                                if (warehouseId != null && itemId != null && quantity != null) {
-                                    inventoryManager.updateInventory(warehouseId, itemId, quantity);
-                                    System.out.printf("[INIT RECV] %s/%s = %d%n", warehouseId, itemId, quantity);
+                                if (warehouseId != null && stockMap != null) {
+                                    stockMap.forEach((itemId, quantity) -> {
+                                        inventoryManager.updateInventory(warehouseId, itemId, quantity);
+                                    });
+                                    System.out.printf("[INIT RECV] %s 재고 갱신: %s%n", warehouseId, stockMap);
                                 } else {
                                     System.err.printf("[INIT ERROR] 잘못된 데이터 수신: %s%n", text);
                                 }
+
                             }
                         }
 

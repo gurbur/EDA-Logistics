@@ -1,17 +1,23 @@
 package com.jihwan.logistics.ims.service;
 
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class InventoryManager {
     private final Map<String, Map<String, Integer>> inventoryMap = new ConcurrentHashMap<>();
+    private final Map<String, Integer> warehouseLocationMap = new HashMap<>();
+    private final List<String> worldMap = Arrays.asList(
+            "SEOUL", "INCHEON", "DAEJEON", "GWANGJU", "BUSAN", "ULSAN",
+            "DAEGU", "JEONJU", "CHUNCHEON", "SUWON", "CHEONGJU", "JEJU"
+    );
 
-    public InventoryManager () {
-    }
+    public InventoryManager () {}
 
     public synchronized void updateInventory(String warehouseId, String itemId, int quantity) {
         inventoryMap.computeIfAbsent(warehouseId.toUpperCase(), k -> new ConcurrentHashMap<>())
                 .put(itemId, quantity);
+        warehouseLocationMap.putIfAbsent(warehouseId.toUpperCase(), worldMap.indexOf(warehouseId.toUpperCase()));
+
         System.out.printf("[UPDATED] %s - %s = %d개%n", warehouseId, itemId, quantity);
         printInventory();
     }
@@ -38,6 +44,26 @@ public class InventoryManager {
             return true;
         }
         return false;
+    }
+
+    public String findNearestWarehouse(String destination, String itemId) {
+        if (!worldMap.contains(destination)) return null;
+
+        int destIdx = worldMap.indexOf(destination);
+        int ringSize = worldMap.size();
+
+        for (int offset = 0; offset <= ringSize / 2; offset++) {
+            int clockwise = (destIdx + offset) % ringSize;
+            int counterClockwise = (destIdx - offset + ringSize) % ringSize;
+
+            for (int idx : List.of(clockwise, counterClockwise)) {
+                String candidate = worldMap.get(idx);
+                if (hasStock(candidate, itemId)) {
+                    return candidate;
+                }
+            }
+        }
+        return null;
     }
 
     public void printInventory() {
