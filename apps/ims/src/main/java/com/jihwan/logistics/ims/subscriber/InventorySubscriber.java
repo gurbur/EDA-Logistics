@@ -29,6 +29,10 @@ public class InventorySubscriber {
         final Topic itemPackedTopic = JCSMPFactory.onlyInstance()
                 .createTopic("TOPIC/JIHWAN_LOGIS/PACKING/ITEM_PACKED/>");
 
+        final Topic warehouseInitialTopic = JCSMPFactory.onlyInstance()
+                .createTopic("TOPIC/JIHWAN_LOGIS/WMS/INVENTORY/INIT/>");
+
+
         XMLMessageConsumer consumer = session.getMessageConsumer(new XMLMessageListener() {
             private final ObjectMapper mapper = new ObjectMapper();
 
@@ -72,6 +76,17 @@ public class InventorySubscriber {
                                     System.err.printf("[PACKED] 차감 실패: 재고 없음 (%s - %s @%s)%n",
                                             orderId, itemId, warehouseId);
                                 }
+                            } else if (topicStr.contains("INVENTORY/INIT")) {
+                                String warehouseId = (String) payload.get("warehouse_id");
+                                String itemId = (String) payload.get("item_id");
+                                Integer quantity = (Integer) payload.get("quantity");
+
+                                if (warehouseId != null && itemId != null && quantity != null) {
+                                    inventoryManager.updateInventory(warehouseId, itemId, quantity);
+                                    System.out.printf("[INIT RECV] %s/%s = %d%n", warehouseId, itemId, quantity);
+                                } else {
+                                    System.err.printf("[INIT ERROR] 잘못된 데이터 수신: %s%n", text);
+                                }
                             }
                         }
 
@@ -89,6 +104,7 @@ public class InventorySubscriber {
 
         session.addSubscription(orderCreatedTopic);
         session.addSubscription(itemPackedTopic);
+        session.addSubscription(warehouseInitialTopic);
         consumer.start();
 
         System.out.println("Solace Subscriber started for ORDER_CREATED and ITEM_PACKED");

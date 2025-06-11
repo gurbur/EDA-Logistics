@@ -7,20 +7,13 @@ public class InventoryManager {
     private final Map<String, Map<String, Integer>> inventoryMap = new ConcurrentHashMap<>();
 
     public InventoryManager () {
-        initializeSampleInventory();
     }
 
-    private void initializeSampleInventory() {
-        Map<String, Integer> seoulWarehouse = new ConcurrentHashMap<>();
-        seoulWarehouse.put("itemA", 5);
-        seoulWarehouse.put("itemB", 3);
-
-        Map<String, Integer> busanWarehouse = new ConcurrentHashMap<>();
-        busanWarehouse.put("itemA", 0);
-        busanWarehouse.put("itemC", 7);
-
-        inventoryMap.put("SEOUL", seoulWarehouse);
-        inventoryMap.put("BUSAN", busanWarehouse);
+    public synchronized void updateInventory(String warehouseId, String itemId, int quantity) {
+        inventoryMap.computeIfAbsent(warehouseId.toUpperCase(), k -> new ConcurrentHashMap<>())
+                .put(itemId, quantity);
+        System.out.printf("[UPDATED] %s - %s = %d개%n", warehouseId, itemId, quantity);
+        printInventory();
     }
 
     public boolean hasStock(String warehouseId, String itemId) {
