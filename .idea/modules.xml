@@ -3,6 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/EDA-Logistics.iml" filepath="$PROJECT_DIR$/.idea/EDA-Logistics.iml" />
+      <module fileurl="file://$PROJECT_DIR$/apps/lms/lms.iml" filepath="$PROJECT_DIR$/apps/lms/lms.iml" />
+      <module fileurl="file://$PROJECT_DIR$/apps/tms/tms.iml" filepath="$PROJECT_DIR$/apps/tms/tms.iml" />
     </modules>
   </component>
 </project>
