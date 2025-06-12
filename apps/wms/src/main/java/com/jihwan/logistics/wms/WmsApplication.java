@@ -16,15 +16,10 @@ public class WmsApplication {
         try {
             WmsInventoryManager inventoryManager = new WmsInventoryManager(configPath);
             WmsEventPublisher publisher = new WmsEventPublisher();
-
-            inventoryManager.getInventorySnapshot().forEach((itemId, qty) -> {
-                publisher.publishInitialInventory(
-                        inventoryManager.getWarehouseId(),
-                        itemId,
-                        qty
-                );
-            });
-
+            publisher.publishInitialStockBatch(
+                    inventoryManager.getWarehouseId(),
+                    inventoryManager.getInventorySnapshot()
+            );
             WmsEventSubscriber subscriber = new WmsEventSubscriber(inventoryManager, publisher);
             subscriber.start();
         } catch (Exception e) {

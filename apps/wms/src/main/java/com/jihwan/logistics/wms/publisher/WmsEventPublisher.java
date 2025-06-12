@@ -55,16 +55,14 @@ public class WmsEventPublisher {
         }
     }
 
-    public void publishInitialInventory(String warehouseId, String itemId, int quantity) {
+    public void publishInitialStockBatch(String warehouseId, Map<String, Integer> stockMap) {
         try {
-            String topicStr = String.format("TOPIC/JIHWAN_LOGIS/WMS/INVENTORY/INIT/%s/%s",
-                    warehouseId.toUpperCase(), itemId);
+            String topicStr = String.format("TOPIC/JIHWAN_LOGIS/WMS/INVENTORY/INIT/%s", warehouseId.toUpperCase());
             Topic topic = JCSMPFactory.onlyInstance().createTopic(topicStr);
 
             Map<String, Object> payload = new HashMap<>();
             payload.put("warehouse_id", warehouseId);
-            payload.put("item_id", itemId);
-            payload.put("quantity", quantity);
+            payload.put("stock", stockMap);
             payload.put("timestamp", Instant.now().toString());
 
             TextMessage msg = JCSMPFactory.onlyInstance().createMessage(TextMessage.class);
@@ -72,10 +70,11 @@ public class WmsEventPublisher {
             msg.setDeliveryMode(DeliveryMode.DIRECT);
 
             producer.send(msg, topic);
-            System.out.printf("Published INVENTORY INIT to [%s]: %s%n", topicStr, msg.getText());
+            System.out.printf("Published BATCH INVENTORY INIT to [%s]: %s%n", topicStr, msg.getText());
         } catch (Exception e) {
-            System.err.println("Exception during INVENTORY INIT publish: " + e.getMessage());
+            System.err.println("Exception during INVENTORY INIT (batch) publish: " + e.getMessage());
         }
     }
+
 
 }
