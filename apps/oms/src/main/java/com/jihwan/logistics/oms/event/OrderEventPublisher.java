@@ -58,7 +58,7 @@ public class OrderEventPublisher {
 
     private void publishToTopic(String eventType, Map<String, Object> payload, String region, String orderId) {
         try {
-            String topicStr = String.format("TOPIC/JIHWAN_LOGIS/ORDER/%s/%s/%s",
+            String topicStr = String.format("TOPIC/JIHWAN_LOGIS/OMS/ORDER_%s/%s/%s",
                     eventType.toUpperCase(), region.toUpperCase(), orderId);
             Topic topic = JCSMPFactory.onlyInstance().createTopic(topicStr);
 
