@@ -36,7 +36,7 @@ public class WmsEventPublisher {
 
     public void publishItemPicked(String orderId, String itemId) {
         try {
-            String topicStr = String.format("TOPIC/JIHWAN_LOGIS/WMS/ITEM_PICKED/%s/%s", orderId, itemId);
+            String topicStr = String.format("TOPIC/JIHWAN_LOGIS/WMS/ITEM_PICKED/%s/%s", itemId, orderId);
             Topic topic = JCSMPFactory.onlyInstance().createTopic(topicStr);
 
             Map<String, Object> payload = new HashMap<>();
@@ -57,7 +57,7 @@ public class WmsEventPublisher {
 
     public void publishInitialStockBatch(String warehouseId, Map<String, Integer> stockMap) {
         try {
-            String topicStr = String.format("TOPIC/JIHWAN_LOGIS/WMS/INVENTORY/INIT/%s", warehouseId.toUpperCase());
+            String topicStr = String.format("TOPIC/JIHWAN_LOGIS/WMS/INVENTORY_INIT/%s/BATCH", warehouseId.toUpperCase());
             Topic topic = JCSMPFactory.onlyInstance().createTopic(topicStr);
 
             Map<String, Object> payload = new HashMap<>();
