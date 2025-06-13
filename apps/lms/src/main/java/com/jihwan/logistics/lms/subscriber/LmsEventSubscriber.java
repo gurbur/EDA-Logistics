@@ -22,7 +22,8 @@ public class LmsEventSubscriber {
         JCSMPSession session = SolaceSessionFactory.createSession();
         session.connect();
 
-        final Topic orderTopic = JCSMPFactory.onlyInstance().createTopic("TOPIC/JIHWAN_LOGIS/ORDER/CREATED/>");
+        final Topic orderTopic = JCSMPFactory.onlyInstance()
+                .createTopic("TOPIC/JIHWAN_LOGIS/OMS/ORDER_CREATED/>");
 
         XMLMessageConsumer consumer = session.getMessageConsumer(new XMLMessageListener() {
             private final ObjectMapper mapper = new ObjectMapper();
@@ -33,15 +34,21 @@ public class LmsEventSubscriber {
                     try {
                         String text = ((TextMessage) message).getText();
                         Map<String, Object> payload = mapper.readValue(text, Map.class);
-                        String orderId = (String) payload.get("order_id");
 
-                        boolean assigned = workerManager.tryAssignWorker(orderId);
-                        if (assigned) {
-                            publisher.publishAllocationResult(orderId, "SUCCESS", "작업자 배정 성공");
-                        } else {
-                            publisher.publishAllocationResult(orderId, "FAILED", "할당 가능한 작업자 없음");
+                        if (message.getDestination() instanceof Topic topic) {
+                            String[] parts = topic.getName().split("/");
+                            if (parts.length >= 6 && parts[2].equals("OMS") && parts[3].equals("ORDER_CREATED")) {
+                                String region = parts[4];
+                                String orderId = parts[5];
+
+                                boolean assigned = workerManager.tryAssignWorker(orderId);
+                                if (assigned) {
+                                    publisher.publishAllocationResult(region, orderId, true, "작업자 배정 성공");
+                                } else {
+                                    publisher.publishAllocationResult(region, orderId, false, "할당 가능한 작업자 없음");
+                                }
+                            }
                         }
-
                     } catch (Exception e) {
                         System.err.println("LMS 메시지 처리 실패: " + e.getMessage());
                     }
@@ -61,9 +68,8 @@ public class LmsEventSubscriber {
         while (true) {
             try {
                 Thread.sleep(1000);
-            } catch (InterruptedException ignored) {
-            }
+            } catch (InterruptedException ignored) {}
         }
-
     }
 }
+

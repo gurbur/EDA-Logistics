@@ -29,15 +29,15 @@ public class LmsEventPublisher {
         });
     }
 
-    public void publishAllocationResult(String orderId, String result, String reason) {
+    public void publishAllocationResult(String region, String orderId, boolean success, String reason) {
         try {
             String topicStr = String.format("TOPIC/JIHWAN_LOGIS/LMS/ALLOCATION_RESULT/%s/%s",
-                    result.toUpperCase(), orderId);
+                    region.toUpperCase(), orderId);
             Topic topic = JCSMPFactory.onlyInstance().createTopic(topicStr);
 
             Map<String, Object> payload = new HashMap<>();
             payload.put("order_id", orderId);
-            payload.put("result", result.toUpperCase());
+            payload.put("result", success ? "SUCCESS" : "FAILED");
             payload.put("reason", reason);
             payload.put("timestamp", Instant.now().toString());
 
@@ -46,9 +46,11 @@ public class LmsEventPublisher {
             msg.setDeliveryMode(DeliveryMode.DIRECT);
 
             producer.send(msg, topic);
-            System.out.printf("[LMS ALLOCATION %s] Published to [%s]: %s%n", result.toUpperCase(), topicStr, msg.getText());
+            System.out.printf("[LMS ALLOCATION %s] Published to [%s]: %s%n",
+                    success ? "SUCCESS" : "FAILED", topicStr, msg.getText());
         } catch (Exception e) {
             System.err.println("Exception during LMS allocation publish: " + e.getMessage());
         }
     }
+
 }
