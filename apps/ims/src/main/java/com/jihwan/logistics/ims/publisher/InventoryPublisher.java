@@ -31,18 +31,17 @@ public class InventoryPublisher {
         });
     }
 
-    public void publishStockEvent(String eventType, String warehouseId, String orderId, String itemId, int quantity) {
+    public void publishStockEvent(String region, String orderId, String itemId, int quantity, boolean success, String reason) {
         try {
-            String topicStr = String.format(
-                    "TOPIC/JIHWAN_LOGIS/STOCK/%s/%s/%s",
-                    eventType.toUpperCase(), warehouseId.toUpperCase(), orderId
-            );
+            String topicStr = String.format("TOPIC/JIHWAN_LOGIS/IMS/ALLOCATION_RESULT/%s/%s",
+                    region.toUpperCase(), orderId);
             Topic topic = JCSMPFactory.onlyInstance().createTopic(topicStr);
 
             Map<String, Object> payload = new HashMap<>();
             payload.put("order_id", orderId);
             payload.put("item_id", itemId);
-            payload.put("warehouse_id", warehouseId);
+            payload.put("result", success ? "SUCCESS" : "FAILED");
+            payload.put("reason", reason);
             payload.put("quantity", quantity);
             payload.put("timestamp", Instant.now().toString());
 
@@ -51,53 +50,10 @@ public class InventoryPublisher {
             msg.setDeliveryMode(DeliveryMode.DIRECT);
 
             producer.send(msg, topic);
-            System.out.printf("Published to [%s]: %s%n", topicStr, msg.getText());
+            System.out.printf("[ALLOCATION %s] Published to [%s]: %s%n",
+                    success ? "SUCCESS" : "FAILED", topicStr, msg.getText());
         } catch (Exception e) {
             System.err.println("Exception during stock event publish: " + e.getMessage());
-        }
-    }
-
-    public void publishStockInsufficient(String orderId, String itemId, List<String> checkedRegions) {
-        try {
-            String topicStr = String.format("TOPIC/JIHWAN_LOGIS/STOCK/INSUFFICIENT/NULL/%s", orderId);
-            Topic topic = JCSMPFactory.onlyInstance().createTopic(topicStr);
-
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("order_id", orderId);
-            payload.put("item_id", itemId);
-            payload.put("regions_checked", checkedRegions);
-            payload.put("timestamp", Instant.now().toString());
-
-            TextMessage msg = JCSMPFactory.onlyInstance().createMessage(TextMessage.class);
-            msg.setText(mapper.writeValueAsString(payload));
-            msg.setDeliveryMode(DeliveryMode.DIRECT);
-
-            producer.send(msg, topic);
-            System.out.printf("Published INSUFFICIENT to [%s]: %s%n", topicStr, msg.getText());
-        } catch (Exception e) {
-            System.err.println("Exception during insufficient stock publish: " + e.getMessage());
-        }
-    }
-
-    public void publishAllocationFailure(String orderId, String reason) {
-        try {
-            String topicStr = String.format("TOPIC/JIHWAN_LOGIS/IMS/ALLOCATION_RESULT/FAILED/%s", orderId);
-            Topic topic = JCSMPFactory.onlyInstance().createTopic(topicStr);
-
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("order_id", orderId);
-            payload.put("result", "FAILED");
-            payload.put("reason", reason);
-            payload.put("timestamp", Instant.now().toString());
-
-            TextMessage msg = JCSMPFactory.onlyInstance().createMessage(TextMessage.class);
-            msg.setText(mapper.writeValueAsString(payload));
-            msg.setDeliveryMode(DeliveryMode.DIRECT);
-
-            producer.send(msg, topic);
-            System.out.printf("[ALLOCATION FAILED] Published to [%s]: %s%n", topicStr, msg.getText());
-        } catch (Exception e) {
-            System.err.printf("Exception during allocation failure publish: %s%n", e.getMessage());
         }
     }
 

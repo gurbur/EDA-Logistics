@@ -24,14 +24,13 @@ public class InventorySubscriber {
         session.connect();
 
         final Topic orderCreatedTopic = JCSMPFactory.onlyInstance()
-                .createTopic("TOPIC/JIHWAN_LOGIS/ORDER/CREATED/>");
+                .createTopic("TOPIC/JIHWAN_LOGIS/OMS/ORDER_CREATED/>");
 
         final Topic itemPackedTopic = JCSMPFactory.onlyInstance()
-                .createTopic("TOPIC/JIHWAN_LOGIS/PACKING/ITEM_PACKED/>");
+                .createTopic("TOPIC/JIHWAN_LOGIS/WMS/ITEM_PACKED/>");
 
         final Topic warehouseInitialTopic = JCSMPFactory.onlyInstance()
-                .createTopic("TOPIC/JIHWAN_LOGIS/WMS/INVENTORY/INIT/>");
-
+                .createTopic("TOPIC/JIHWAN_LOGIS/WMS/INVENTORY_INIT/>");
 
         XMLMessageConsumer consumer = session.getMessageConsumer(new XMLMessageListener() {
             private final ObjectMapper mapper = new ObjectMapper();
@@ -45,25 +44,30 @@ public class InventorySubscriber {
 
                         if (message.getDestination() instanceof Topic topic) {
                             String topicStr = topic.getName();
+                            String[] parts = topicStr.split("/");
 
-                            if (topicStr.contains("ORDER/CREATED")) {
-                                String orderId = (String) payload.get("order_id");
+                            if (parts.length >= 6 && parts[2].equals("OMS") && parts[3].equals("ORDER_CREATED")) {
+                                String region = parts[4];
+                                String orderId = parts[5];
                                 String itemId = (String) payload.get("item_id");
-                                String destination = (String) payload.get("destination");
 
-                                String assignedWarehouse = inventoryManager.findNearestWarehouse(destination, itemId);
+                                String assignedWarehouse = inventoryManager.findNearestWarehouse(region, itemId);
 
                                 if (assignedWarehouse != null) {
                                     int remainingQty = inventoryManager.getStock(assignedWarehouse, itemId);
-                                    inventoryPublisher.publishStockEvent("CONFIRMED", assignedWarehouse, orderId, itemId, remainingQty);
+                                    inventoryPublisher.publishStockEvent(
+                                            region, orderId, itemId, remainingQty, true, "재고 확인 및 배정 성공"
+                                    );
                                 } else {
-                                    inventoryPublisher.publishStockInsufficient(orderId, itemId, List.of(destination));
-                                    inventoryPublisher.publishAllocationFailure(orderId, "모든 창고에서 재고 부족");
+                                    inventoryPublisher.publishStockEvent(
+                                            region, orderId, itemId, 0, false, "모든 창고에서 재고 부족"
+                                    );
                                 }
 
                                 System.out.printf("Order %s - Item %s → Assigned: %s%n",
                                         orderId, itemId, assignedWarehouse != null ? assignedWarehouse : "NOT_FOUND");
-                            } else if (topicStr.contains("PACKING/ITEM_PACKED")) {
+                            }
+                            else if (parts.length >= 6 && parts[2].equals("WMS") && parts[3].equals("ITEM_PACKED")) {
                                 String orderId = (String) payload.get("order_id");
                                 String itemId = (String) payload.get("item_id");
                                 String warehouseId = (String) payload.get("warehouse_id");
@@ -77,19 +81,18 @@ public class InventorySubscriber {
                                     System.err.printf("[PACKED] 차감 실패: 재고 없음 (%s - %s @%s)%n",
                                             orderId, itemId, warehouseId);
                                 }
-                            } else if (topicStr.contains("INVENTORY/INIT")) {
-                                String warehouseId = (String) payload.get("warehouse_id");
+
+                            } else if (parts.length >= 5 && parts[2].equals("WMS") && parts[3].equals("INVENTORY_INIT")) {
+                                String warehouseId = parts[4];
                                 Map<String, Integer> stockMap = (Map<String, Integer>) payload.get("stock");
 
                                 if (warehouseId != null && stockMap != null) {
-                                    stockMap.forEach((itemId, quantity) -> {
-                                        inventoryManager.updateInventory(warehouseId, itemId, quantity);
-                                    });
+                                    stockMap.forEach((itemId, quantity) ->
+                                            inventoryManager.updateInventory(warehouseId, itemId, quantity));
                                     System.out.printf("[INIT RECV] %s 재고 갱신: %s%n", warehouseId, stockMap);
                                 } else {
                                     System.err.printf("[INIT ERROR] 잘못된 데이터 수신: %s%n", text);
                                 }
-
                             }
                         }
 
@@ -115,9 +118,7 @@ public class InventorySubscriber {
         while (true) {
             try {
                 Thread.sleep(1000);
-            } catch (InterruptedException ignored) {
-            }
+            } catch (InterruptedException ignored) {}
         }
     }
-
 }
