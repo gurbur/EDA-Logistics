@@ -22,7 +22,8 @@ public class TmsEventSubscriber {
         JCSMPSession session = SolaceSessionFactory.createSession();
         session.connect();
 
-        final Topic orderTopic = JCSMPFactory.onlyInstance().createTopic("TOPIC/JIHWAN_LOGIS/ORDER/CREATED/>");
+        final Topic orderTopic = JCSMPFactory.onlyInstance()
+                .createTopic("TOPIC/JIHWAN_LOGIS/OMS/ORDER_CREATED/>");
 
         XMLMessageConsumer consumer = session.getMessageConsumer(new XMLMessageListener() {
             private final ObjectMapper mapper = new ObjectMapper();
@@ -34,15 +35,20 @@ public class TmsEventSubscriber {
                         String text = ((TextMessage) message).getText();
                         Map<String, Object> payload = mapper.readValue(text, Map.class);
 
-                        String orderId = (String) payload.get("order_id");
+                        if (message.getDestination() instanceof Topic topic) {
+                            String[] parts = topic.getName().split("/");
+                            if (parts.length >= 6 && parts[2].equals("OMS") && parts[3].equals("ORDER_CREATED")) {
+                                String region = parts[4];
+                                String orderId = parts[5];
 
-                        boolean assigned = truckManager.tryAssignTruck(orderId);
-                        if (assigned) {
-                            publisher.publishAllocationResult(orderId, "SUCCESS", "트럭 배정 성공");
-                        } else {
-                            publisher.publishAllocationResult(orderId, "FAILED", "사용 가능한 트럭 없음");
+                                boolean assigned = truckManager.tryAssignTruck(orderId);
+                                if (assigned) {
+                                    publisher.publishAllocationResult(region, orderId, true, "트럭 배정 성공");
+                                } else {
+                                    publisher.publishAllocationResult(region, orderId, false, "사용 가능한 트럭 없음");
+                                }
+                            }
                         }
-
                     } catch (Exception e) {
                         System.err.println("TMS 메시지 처리 실패: " + e.getMessage());
                     }
@@ -62,9 +68,7 @@ public class TmsEventSubscriber {
         while (true) {
             try {
                 Thread.sleep(1000);
-            } catch (InterruptedException ignored) {
-            }
+            } catch (InterruptedException ignored) {}
         }
-
     }
 }
