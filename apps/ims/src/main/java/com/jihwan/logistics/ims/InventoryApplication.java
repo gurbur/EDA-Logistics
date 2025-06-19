@@ -2,6 +2,7 @@ package com.jihwan.logistics.ims;
 
 import com.jihwan.logistics.ims.publisher.InventoryPublisher;
 import com.jihwan.logistics.ims.service.InventoryManager;
+import com.jihwan.logistics.ims.subscriber.InventoryDmqProcessor;
 import com.jihwan.logistics.ims.subscriber.InventorySubscriber;
 
 public class InventoryApplication {
@@ -9,7 +10,10 @@ public class InventoryApplication {
         InventoryManager manager = new InventoryManager();
         InventoryPublisher publisher = new InventoryPublisher();
         InventorySubscriber subscriber = new InventorySubscriber(manager, publisher);
+        InventoryDmqProcessor dmqProcessor = new InventoryDmqProcessor(manager, publisher);
+
         manager.printInventory();
         subscriber.start();
+        dmqProcessor.start();
     }
 }
