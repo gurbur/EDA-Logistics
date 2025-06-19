@@ -8,12 +8,12 @@ import com.solacesystems.jcsmp.*;
 
 import java.util.Map;
 
-public class LmsEventSubscriber {
+public class LmsDmqProcessor {
 
     private final WorkerAssignmentManager workerManager;
     private final LmsEventPublisher publisher;
 
-    public LmsEventSubscriber(WorkerAssignmentManager workerManager, LmsEventPublisher publisher) {
+    public LmsDmqProcessor(WorkerAssignmentManager workerManager, LmsEventPublisher publisher) {
         this.workerManager = workerManager;
         this.publisher = publisher;
     }
@@ -22,10 +22,10 @@ public class LmsEventSubscriber {
         JCSMPSession session = SolaceSessionFactory.createSession();
         session.connect();
 
-        Queue queue = JCSMPFactory.onlyInstance().createQueue("Q.JIHWAN.LMS");
+        Queue dmq = JCSMPFactory.onlyInstance().createQueue("DMQ.JIHWAN.LMS");
 
         ConsumerFlowProperties flowProps = new ConsumerFlowProperties();
-        flowProps.setEndpoint(queue);
+        flowProps.setEndpoint(dmq);
         flowProps.setAckMode(JCSMPProperties.SUPPORTED_MESSAGE_ACK_CLIENT);
 
         FlowReceiver flow = session.createFlow(new XMLMessageListener() {
@@ -44,31 +44,33 @@ public class LmsEventSubscriber {
                                 String region = parts[4];
                                 String orderId = parts[5];
 
+                                System.out.printf("♻️ [DMQ REPROCESS] %s - %s 재처리 시도%n", region, orderId);
+
                                 boolean assigned = workerManager.tryAssignWorker(orderId);
                                 if (assigned) {
-                                    publisher.publishAllocationResult(region, orderId, true, "작업자 배정 성공");
+                                    publisher.publishAllocationResult(region, orderId, true, "[DMQ] 작업자 재배정 성공");
                                 } else {
-                                    publisher.publishAllocationResult(region, orderId, false, "할당 가능한 작업자 없음");
+                                    publisher.publishAllocationResult(region, orderId, false, "[DMQ] 재시도 실패: 작업자 부족");
                                 }
                             }
                         }
 
-                        message.ackMessage(); // ✅ 수신 성공 시 명시적 ACK
+                        message.ackMessage(); // ✅ ACK on success
 
                     } catch (Exception e) {
-                        System.err.println("LMS 메시지 처리 실패: " + e.getMessage());
+                        System.err.println("📛 [DMQ] LMS 재처리 중 예외 발생: " + e.getMessage());
                     }
                 }
             }
 
             @Override
             public void onException(JCSMPException e) {
-                System.err.println("LMS 구독 중 오류 발생: " + e.getMessage());
+                System.err.println("📛 [DMQ] LMS 구독 오류: " + e.getMessage());
             }
         }, flowProps);
 
         flow.start();
-        System.out.println("👷 LMS FlowReceiver started for Q.JIHWAN.LMS");
+        System.out.println("🧯 LMS DMQ Processor started for DMQ.JIHWAN.LMS");
 
         while (true) {
             try {
