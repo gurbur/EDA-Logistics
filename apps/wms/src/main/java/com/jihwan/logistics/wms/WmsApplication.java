@@ -20,7 +20,7 @@ public class WmsApplication {
                     inventoryManager.getWarehouseId(),
                     inventoryManager.getInventorySnapshot()
             );
-            WmsEventSubscriber subscriber = new WmsEventSubscriber(inventoryManager, publisher);
+            WmsEventSubscriber subscriber = new WmsEventSubscriber(inventoryManager, publisher, inventoryManager.getWarehouseId());
             subscriber.start();
         } catch (Exception e) {
             System.err.println("WMS Application failed to start: " + e.getMessage());
