@@ -1,0 +1,8 @@
+{
+  "warehouse_id": "DAEGU",
+  "items": {
+    "itemA": 3,
+    "itemB": 8,
+    "itemC": 7
+  }
+}

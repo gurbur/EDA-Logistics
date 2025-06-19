@@ -1,0 +1,8 @@
+{
+  "warehouse_id": "SEOUL",
+  "items": {
+    "itemA": 10,
+    "itemB": 5,
+    "itemC": 0
+  }
+}
