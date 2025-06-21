@@ -88,6 +88,41 @@ public class SimulatorState {
         }
     }
 
+    public void updateTruckStatus(String truckId, Truck.Status status, String location) {
+        Truck truck = trucks.get(truckId);
+        if (truck == null) return;
+
+        String oldLocation = truck.getLocation();
+
+        // 상태 및 위치 갱신
+        truck.setStatus(status);
+        truck.setLocation(location);
+
+        // 위치가 변경되었으면 location map 갱신
+        if (!Objects.equals(oldLocation, location)) {
+            removeFromLocation(trucksByLocation, oldLocation, truckId);
+            addToLocation(trucksByLocation, location, truckId);
+        }
+    }
+
+    public void updateWorkerStatus(String workerId, Worker.Status status, String location) {
+        Worker worker = workers.get(workerId);
+        if (worker == null) return;
+
+        String oldLocation = worker.getLocation();
+
+        // 상태 및 위치 갱신
+        worker.setStatus(status);
+        worker.setLocation(location);
+
+        // 위치가 변경되었으면 location map 갱신
+        if (!Objects.equals(oldLocation, location)) {
+            removeFromLocation(workersByLocation, oldLocation, workerId);
+            addToLocation(workersByLocation, location, workerId);
+        }
+    }
+
+
     public void printStatus() {
         System.out.println("====== WORLD STATUS ======");
         Set<String> allLocations = new TreeSet<>();

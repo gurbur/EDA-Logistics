@@ -24,8 +24,16 @@ public class Worker {
         return location;
     }
 
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
     public Status getStatus() {
         return status;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
     }
 
     public void assignTo(String destination) {
